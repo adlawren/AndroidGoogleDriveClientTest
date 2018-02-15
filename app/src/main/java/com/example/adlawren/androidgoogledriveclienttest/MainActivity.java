@@ -41,6 +41,7 @@ import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
 
+    // Note: "RC" == "Request Code"
     public static final int RC_SIGN_IN = 1;
     public static final int RC_CREATE_DRIVE_FILE = 2;
 
@@ -64,6 +65,14 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View view) {
             updatePrivateDriveFile(getNewDriveFileContentsEditTextContent());
+        }
+    }
+
+    public class ReadPrivateDriveFileButtonOnClickListener implements Button.OnClickListener {
+
+        @Override
+        public void onClick(View view) {
+            displayParsedDriveFileContents();
         }
     }
 
@@ -96,7 +105,12 @@ public class MainActivity extends AppCompatActivity {
         signInButton.setOnClickListener(new SignInButtonOnClickListener());
 
         Button updatePrivateDriveFileButton = getUpdatePrivateDriveFileButton();
-        updatePrivateDriveFileButton.setOnClickListener(new UpdatePrivateDriveFileButtonOnClickListener());
+        updatePrivateDriveFileButton.setOnClickListener(
+                new UpdatePrivateDriveFileButtonOnClickListener());
+
+        Button readPrivateDriveFileButton = getReadPrivateDriveFileButton();
+        readPrivateDriveFileButton.setOnClickListener(
+                new ReadPrivateDriveFileButtonOnClickListener());
 
         Button exportToDriveButton = getExportToDriveButton();
         exportToDriveButton.setOnClickListener(new ExportToDriveButtonOnClickListener());
@@ -177,6 +191,11 @@ public class MainActivity extends AppCompatActivity {
 
     private Button getUpdatePrivateDriveFileButton() {
         Button button = findViewById(R.id.update_private_drive_file_button);
+        return button;
+    }
+
+    private Button getReadPrivateDriveFileButton() {
+        Button button = findViewById(R.id.read_private_drive_file_button);
         return button;
     }
 
@@ -285,7 +304,8 @@ public class MainActivity extends AppCompatActivity {
                                                 new OnSuccessListener<Void>() {
                                             @Override
                                             public void onSuccess(Void aVoid) {
-                                                displayParsedDriveFileContents();
+                                                Log.i("INFO_TAG",
+                                                        "Successfully updated private file!");
                                             }
                                         });
                                     }
@@ -324,7 +344,8 @@ public class MainActivity extends AppCompatActivity {
                                         .addOnSuccessListener(new OnSuccessListener<DriveFile>() {
                                     @Override
                                     public void onSuccess(DriveFile driveFile) {
-                                        displayParsedDriveFileContents();
+                                        Log.i("INFO_TAG",
+                                                "Successfully updated private file!");
                                     }
                                 });
                             }
