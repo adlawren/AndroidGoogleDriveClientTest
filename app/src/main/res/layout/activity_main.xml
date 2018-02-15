@@ -35,11 +35,24 @@
             android:id="@+id/new_file_contents_edit_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
-        <Button
-            android:id="@+id/update_drive_file_button"
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+            <Button
+                android:id="@+id/update_private_drive_file_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Update private Drive File" />
+            <Button
+                android:id="@+id/export_to_drive_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Export to Drive" />
+        </LinearLayout>
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Update Drive File" />
+            android:text="Private Drive file contents, retrieved using the API:"/>
         <TextView
             android:id="@+id/retrieved_file_contents_text_view"
             android:layout_width="wrap_content"

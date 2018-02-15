@@ -1,6 +1,7 @@
 package com.example.adlawren.androidgoogledriveclienttest;
 
 import android.content.Intent;
+import android.content.IntentSender;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -9,6 +10,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -16,6 +18,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.drive.CreateFileActivityOptions;
 import com.google.android.gms.drive.Drive;
 import com.google.android.gms.drive.DriveClient;
 import com.google.android.gms.drive.DriveContents;
@@ -25,7 +28,6 @@ import com.google.android.gms.drive.DriveResourceClient;
 import com.google.android.gms.drive.Metadata;
 import com.google.android.gms.drive.MetadataBuffer;
 import com.google.android.gms.drive.MetadataChangeSet;
-import com.google.android.gms.tasks.OnFailureListener; // todo: add OnFailureListener s?
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
@@ -40,6 +42,7 @@ import java.util.Date;
 public class MainActivity extends AppCompatActivity {
 
     public static final int RC_SIGN_IN = 1;
+    public static final int RC_CREATE_DRIVE_FILE = 2;
 
     public class SignInButtonOnClickListener implements SignInButton.OnClickListener {
 
@@ -56,11 +59,20 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public class UpdateDriveFileButtonOnClickListener implements Button.OnClickListener {
+    public class UpdatePrivateDriveFileButtonOnClickListener implements Button.OnClickListener {
 
         @Override
         public void onClick(View view) {
-            updateDriveFile(getNewDriveFileContentsEditTextContent());
+            updatePrivateDriveFile(getNewDriveFileContentsEditTextContent());
+        }
+    }
+
+    public class ExportToDriveButtonOnClickListener implements Button.OnClickListener {
+
+        @Override
+        public void onClick(View view) {
+            exportToDriveFile("sample_file_name.some_custom_extension",
+                    getNewDriveFileContentsEditTextContent());
         }
     }
 
@@ -71,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
     private DriveClient mDriveClient = null;
     private DriveResourceClient mDriveResourceClient = null;
 
-    private static final String mDriveFileName = "test_file.some_custom_extension";
+    private static final String mPrivateDriveFileName = "test_file.some_custom_extension";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,8 +95,11 @@ public class MainActivity extends AppCompatActivity {
         SignInButton signInButton = getSignInButton();
         signInButton.setOnClickListener(new SignInButtonOnClickListener());
 
-        Button updateDriveFileButton = getUpdateDriveFileButton();
-        updateDriveFileButton.setOnClickListener(new UpdateDriveFileButtonOnClickListener());
+        Button updatePrivateDriveFileButton = getUpdatePrivateDriveFileButton();
+        updatePrivateDriveFileButton.setOnClickListener(new UpdatePrivateDriveFileButtonOnClickListener());
+
+        Button exportToDriveButton = getExportToDriveButton();
+        exportToDriveButton.setOnClickListener(new ExportToDriveButtonOnClickListener());
     }
 
     @Override
@@ -107,8 +122,21 @@ public class MainActivity extends AppCompatActivity {
 
         switch (requestCode) {
             case RC_SIGN_IN:
-                Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
-                handleSignInResult(task);
+                if (resultCode == RESULT_OK) {
+                    Log.i("INFO_TAG", "Successfully signed into Google account!");
+
+                    Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+                    handleSignInResult(task);
+                }
+
+                break;
+            case RC_CREATE_DRIVE_FILE:
+                if (resultCode == RESULT_OK) {
+                    Log.i("INFO_TAG", "Successfully exported file!");
+                    Toast.makeText(
+                            this, "Successfully exported file!", Toast.LENGTH_LONG)
+                                .show();
+                }
 
                 break;
             default:
@@ -121,6 +149,7 @@ public class MainActivity extends AppCompatActivity {
                 .Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
                 .requestScopes(Drive.SCOPE_APPFOLDER)
+                .requestScopes(Drive.SCOPE_FILE)
                 .build();
 
         return GoogleSignIn.getClient(this, gso);
@@ -141,8 +170,18 @@ public class MainActivity extends AppCompatActivity {
         return editText;
     }
 
-    private Button getUpdateDriveFileButton() {
-        Button button = findViewById(R.id.update_drive_file_button);
+    private String getNewDriveFileContentsEditTextContent() {
+        EditText editText = getNewDriveFileContentsEditText();
+        return editText.getText().toString();
+    }
+
+    private Button getUpdatePrivateDriveFileButton() {
+        Button button = findViewById(R.id.update_private_drive_file_button);
+        return button;
+    }
+
+    private Button getExportToDriveButton() {
+        Button button = findViewById(R.id.export_to_drive_button);
         return button;
     }
 
@@ -151,14 +190,14 @@ public class MainActivity extends AppCompatActivity {
         return driveFileContentsTextView;
     }
 
+    private void updateDriveFileContentsTextView(String newText) {
+        TextView driveFileContentsTextView = getDriveFileContentsTextView();
+        driveFileContentsTextView.setText(newText);
+    }
+
     private LinearLayout getUserInfoLayout() {
         LinearLayout linearLayout = findViewById(R.id.user_info_layout);
         return linearLayout;
-    }
-
-    private String getNewDriveFileContentsEditTextContent() {
-        EditText editText = getNewDriveFileContentsEditText();
-        return editText.getText().toString();
     }
 
     private void handleSignInResult(Task<GoogleSignInAccount> completedTask) {
@@ -204,7 +243,7 @@ public class MainActivity extends AppCompatActivity {
         userInfoLayout.setVisibility(userInfoLayoutVisibility);
     }
 
-    private void updateDriveFile(final String newText) {
+    private void updatePrivateDriveFile(final String newText) {
         final Task<DriveFolder> getAppFolderTask = mDriveResourceClient.getAppFolder();
         getAppFolderTask.addOnSuccessListener(new OnSuccessListener<DriveFolder>() {
             @Override
@@ -217,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onSuccess(MetadataBuffer metadataBuffer) {
                         // Read file contents
                         for (Metadata metadata : metadataBuffer) {
-                            if (metadata.getTitle().equals(mDriveFileName)) {
+                            if (metadata.getTitle().equals(mPrivateDriveFileName)) {
                                 DriveFile driveFile = metadata.getDriveId().asDriveFile();
 
 
@@ -230,8 +269,7 @@ public class MainActivity extends AppCompatActivity {
                                     public void onSuccess(DriveContents driveContents) {
                                         OutputStream outputStream = driveContents.getOutputStream();
                                         try (Writer writer = new OutputStreamWriter(outputStream)) {
-                                            writer.write(
-                                                    getNewDriveFileContentsEditTextContent());
+                                            writer.write(newText);
                                         } catch (IOException e) {
                                             e.printStackTrace();
                                         }
@@ -277,7 +315,7 @@ public class MainActivity extends AppCompatActivity {
 
                                 MetadataChangeSet metadataChangeSet = new MetadataChangeSet
                                         .Builder()
-                                        .setTitle(mDriveFileName)
+                                        .setTitle(mPrivateDriveFileName)
                                         .build();
 
                                 Task<DriveFile> createFileTask = mDriveResourceClient.createFile(
@@ -310,7 +348,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onSuccess(MetadataBuffer metadataBuffer) {
                         // Read file contents
                         for (Metadata metadata : metadataBuffer) {
-                            if (metadata.getTitle().equals(mDriveFileName)) {
+                            if (metadata.getTitle().equals(mPrivateDriveFileName)) {
                                 DriveFile driveFile = metadata.getDriveId().asDriveFile();
 
 
@@ -356,8 +394,51 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void updateDriveFileContentsTextView(String newText) {
-        TextView driveFileContentsTextView = getDriveFileContentsTextView();
-        driveFileContentsTextView.setText(newText);
+    private void exportToDriveFile(final String fileName, final String fileContent) {
+        final Task<DriveContents> createContentsTask = mDriveResourceClient.createContents();
+        createContentsTask.addOnSuccessListener(new OnSuccessListener<DriveContents>() {
+            @Override
+            public void onSuccess(DriveContents driveContents) {
+                OutputStream outputStream = driveContents.getOutputStream();
+                try (Writer writer = new OutputStreamWriter(outputStream)) {
+                    writer.write(fileContent);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                MetadataChangeSet changeSet = new MetadataChangeSet
+                        .Builder()
+                        .setTitle(fileName)
+                        .build();
+
+                CreateFileActivityOptions createFileActivityOptions =
+                        new CreateFileActivityOptions
+                                .Builder()
+                                .setInitialMetadata(changeSet)
+                                .setInitialDriveContents(driveContents)
+                                .build();
+
+                Task<IntentSender> createIntentSenderTask = mDriveClient
+                        .newCreateFileActivityIntentSender(createFileActivityOptions);
+                createIntentSenderTask.addOnSuccessListener(new OnSuccessListener<IntentSender>() {
+                    @Override
+                    public void onSuccess(IntentSender intentSender) {
+                        try {
+                            startIntentSenderForResult(
+                                    intentSender,
+                                    RC_CREATE_DRIVE_FILE,
+                                    null,
+                                    0,
+                                    0,
+                                    0);
+                        } catch (IntentSender.SendIntentException e) {
+                            Log.e("ERROR_TAG",
+                                    "Error: intent sender for the file creation activity could not be started");
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }
+        });
     }
 }
